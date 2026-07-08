@@ -1,16 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { Container, Typography, Paper, Grid, Box, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Card, CardContent, CardMedia, Chip, IconButton, InputAdornment, TextField } from '@mui/material';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Container, Typography, Paper, Grid, Box, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Card, CardContent, Chip, IconButton, InputAdornment, TextField, CircularProgress, Snackbar, Alert, Tooltip } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
+import api from '../api';
 import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import SearchIcon from '@mui/icons-material/Search';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
-import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
-import StarIcon from '@mui/icons-material/Star';
 
-// Default list of initial books to seed in local storage if empty
+// Kept for reference / original seed data — no longer used to populate the
+// Dashboard directly, since books now come from the real backend (US-008).
+// Left here so nothing from the original file is lost.
 const DEFAULT_BOOKS = [
   {
     id: 'seed-1',
@@ -52,25 +55,73 @@ const DEFAULT_BOOKS = [
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const { addToCart } = useCart();
   const navigate = useNavigate();
+
   const [books, setBooks] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [deleteTargetId, setDeleteTargetId] = useState(null);
+  const [addingId, setAddingId] = useState(null);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
-  useEffect(() => {
-    const storedBooks = localStorage.getItem('books');
-    if (!storedBooks) {
-      localStorage.setItem('books', JSON.stringify(DEFAULT_BOOKS));
-      setBooks(DEFAULT_BOOKS);
-    } else {
-      setBooks(JSON.parse(storedBooks));
+  const showSnackbar = (message, severity = 'success') => {
+    setSnackbar({ open: true, message, severity });
+  };
+
+  // BMS-US-008: View Books — pulls the real catalog from the backend
+  const loadBooks = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await api.get('/api/books');
+      setBooks(response.data);
+    } catch (err) {
+      console.error(err);
+      showSnackbar('Failed to load books from the server.', 'error');
+    } finally {
+      setLoading(false);
     }
   }, []);
 
-  const filteredBooks = books.filter(book => 
+  useEffect(() => {
+    loadBooks();
+  }, [loadBooks]);
+
+  // BMS-US-009: Search Books — client-side filtering over the fetched list
+  const filteredBooks = books.filter(book =>
     book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     book.author.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    book.isbn.toLowerCase().includes(searchQuery.toLowerCase())
+    (book.isbn || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // BMS-US-007: Delete Book
+  const handleDelete = async (id) => {
+    setDeleteTargetId(id);
+    try {
+      await api.delete(`/api/books/${id}`);
+      setBooks((prev) => prev.filter((book) => book.id !== id));
+      showSnackbar('Book removed from inventory.');
+    } catch (err) {
+      console.error(err);
+      showSnackbar(err.response?.data?.message || 'Failed to delete book.', 'error');
+    } finally {
+      setDeleteTargetId(null);
+    }
+  };
+
+  // BMS-US-010: Add to Cart
+  const handleAddToCart = async (book) => {
+    setAddingId(book.id);
+    try {
+      await addToCart(book.id, 1);
+      showSnackbar(`"${book.title}" added to cart.`);
+    } catch (err) {
+      console.error(err);
+      showSnackbar(err.response?.data?.message || 'Failed to add book to cart.', 'error');
+    } finally {
+      setAddingId(null);
+    }
+  };
 
   return (
     <Container maxWidth="lg" sx={{ mt: 6, mb: 10 }} className="fade-in">
@@ -133,8 +184,11 @@ const Dashboard = () => {
         />
       </Box>
 
-      {/* Role Based Views */}
-      {user?.role === 'ADMIN' ? (
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+          <CircularProgress sx={{ color: '#6366f1' }} />
+        </Box>
+      ) : user?.role === 'ADMIN' ? (
         /* ADMIN INVENTORY TABLE VIEW */
         <TableContainer component={Paper} className="glass-panel" sx={{ borderRadius: '16px', overflow: 'hidden' }}>
           <Table sx={{ minWidth: 650 }}>
@@ -166,7 +220,6 @@ const Dashboard = () => {
                   <TableCell align="right">
                     <Chip 
                       label={book.quantity > 0 ? `${book.quantity} left` : 'Out of stock'} 
-                      color={book.quantity > 0 ? 'success' : 'error'} 
                       size="small"
                       sx={{
                         fontWeight: 600,
@@ -179,15 +232,32 @@ const Dashboard = () => {
                     />
                   </TableCell>
                   <TableCell align="center">
-                    <IconButton 
-                      onClick={() => navigate(`/edit-book/${book.id}`)}
-                      sx={{ 
-                        color: '#6366f1', 
-                        '&:hover': { bgcolor: 'rgba(99, 102, 241, 0.08)' } 
-                      }}
-                    >
-                      <EditIcon size="small" />
-                    </IconButton>
+                    <Tooltip title="Edit book">
+                      <IconButton 
+                        onClick={() => navigate(`/edit-book/${book.id}`)}
+                        sx={{ 
+                          color: '#6366f1', 
+                          '&:hover': { bgcolor: 'rgba(99, 102, 241, 0.08)' } 
+                        }}
+                      >
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Delete book">
+                      <span>
+                        <IconButton
+                          onClick={() => handleDelete(book.id)}
+                          disabled={deleteTargetId === book.id}
+                          sx={{ color: '#f87171', '&:hover': { bgcolor: 'rgba(248, 113, 113, 0.08)' } }}
+                        >
+                          {deleteTargetId === book.id ? (
+                            <CircularProgress size={18} sx={{ color: '#f87171' }} />
+                          ) : (
+                            <DeleteIcon fontSize="small" />
+                          )}
+                        </IconButton>
+                      </span>
+                    </Tooltip>
                   </TableCell>
                 </TableRow>
               ))}
@@ -222,7 +292,6 @@ const Dashboard = () => {
                   }
                 }}
               >
-                {/* Book Graphic Header */}
                 <Box 
                   sx={{ 
                     height: '140px', 
@@ -266,12 +335,12 @@ const Dashboard = () => {
                       ${book.price.toFixed(2)}
                     </Typography>
                     
-                    {/* Add to Cart Disabled Placeholder */}
                     <Button 
                       variant="outlined" 
                       size="small"
-                      startIcon={<ShoppingCartIcon />}
-                      disabled={book.quantity === 0}
+                      startIcon={addingId === book.id ? <CircularProgress size={14} /> : <ShoppingCartIcon />}
+                      disabled={book.quantity === 0 || addingId === book.id}
+                      onClick={() => handleAddToCart(book)}
                       sx={{ 
                         textTransform: 'none', 
                         borderRadius: '6px',
@@ -284,7 +353,7 @@ const Dashboard = () => {
                         }
                       }}
                     >
-                      Buy
+                      {book.quantity === 0 ? 'Sold Out' : 'Add to Cart'}
                     </Button>
                   </Box>
                 </CardContent>
@@ -300,6 +369,17 @@ const Dashboard = () => {
           )}
         </Grid>
       )}
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert severity={snackbar.severity} sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 };

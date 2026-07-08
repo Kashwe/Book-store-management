@@ -7,6 +7,9 @@ import com.bookstore.exception.ResourceNotFoundException;
 import com.bookstore.repository.BookRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 @Service
 public class BookServiceImpl implements BookService {
 
@@ -45,6 +48,42 @@ public class BookServiceImpl implements BookService {
 
         Book updatedBook = bookRepository.save(book);
         return mapToBookResponse(updatedBook);
+    }
+
+    //  Delete Book 
+    @Override
+    public void deleteBook(String id) {
+        Book book = bookRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Book not found with ID: " + id));
+        bookRepository.delete(book);
+    }
+
+    //  View Books 
+    @Override
+    public List<BookResponse> getAllBooks() {
+        return bookRepository.findAll()
+                .stream()
+                .map(this::mapToBookResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public BookResponse getBookById(String id) {
+        Book book = bookRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Book not found with ID: " + id));
+        return mapToBookResponse(book);
+    }
+
+    // Search Books 
+    @Override
+    public List<BookResponse> searchBooks(String query) {
+        if (query == null || query.trim().isEmpty()) {
+            return getAllBooks();
+        }
+        return bookRepository.findByTitleContainingIgnoreCaseOrAuthorContainingIgnoreCase(query, query)
+                .stream()
+                .map(this::mapToBookResponse)
+                .collect(Collectors.toList());
     }
 
     private BookResponse mapToBookResponse(Book book) {

@@ -4,6 +4,7 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { Box } from '@mui/material';
 import { useAuth } from './context/AuthContext';
+import { CartProvider } from './context/CartContext';
 
 // Components
 import NavigationBar from './components/NavigationBar';
@@ -16,18 +17,19 @@ import Profile from './pages/Profile';
 import EditProfile from './pages/EditProfile';
 import AddBook from './pages/AddBook';
 import EditBook from './pages/EditBook';
+import Cart from './pages/Cart';
 
 // MUI Premium Dark Theme Setup
 const theme = createTheme({
   palette: {
     mode: 'dark',
     primary: {
-      main: '#6366f1', // Indigo 500
+      main: '#6366f1',
       light: '#818cf8',
       dark: '#4f46e5',
     },
     secondary: {
-      main: '#db2777', // Pink 600
+      main: '#db2777',
       light: '#f472b6',
       dark: '#be185d',
     },
@@ -42,12 +44,8 @@ const theme = createTheme({
   },
   typography: {
     fontFamily: "'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-    h3: {
-      fontWeight: 700,
-    },
-    h4: {
-      fontWeight: 700,
-    },
+    h3: { fontWeight: 700 },
+    h4: { fontWeight: 700 },
   },
   components: {
     MuiButton: {
@@ -80,7 +78,7 @@ const theme = createTheme({
 const PrivateRoute = ({ children, role }) => {
   const { user, loading } = useAuth();
 
-  if (loading) return null; // Wait for verification
+  if (loading) return null;
 
   if (!user) {
     return <Navigate to="/login" replace />;
@@ -110,77 +108,89 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-        <NavigationBar />
-        <Box component="main" sx={{ flexGrow: 1, px: 2 }}>
-          <Routes>
-            {/* Public Routes */}
-            <Route 
-              path="/login" 
-              element={
-                <PublicRoute>
-                  <Login />
-                </PublicRoute>
-              } 
-            />
-            <Route 
-              path="/register" 
-              element={
-                <PublicRoute>
-                  <Register />
-                </PublicRoute>
-              } 
-            />
+      <CartProvider>
+        <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+          <NavigationBar />
+          <Box component="main" sx={{ flexGrow: 1, px: 2 }}>
+            <Routes>
+              {/* Public Routes */}
+              <Route
+                path="/login"
+                element={
+                  <PublicRoute>
+                    <Login />
+                  </PublicRoute>
+                }
+              />
+              <Route
+                path="/register"
+                element={
+                  <PublicRoute>
+                    <Register />
+                  </PublicRoute>
+                }
+              />
 
-            {/* Authenticated Shared Routes */}
-            <Route 
-              path="/dashboard" 
-              element={
-                <PrivateRoute>
-                  <Dashboard />
-                </PrivateRoute>
-              } 
-            />
-            <Route 
-              path="/profile" 
-              element={
-                <PrivateRoute>
-                  <Profile />
-                </PrivateRoute>
-              } 
-            />
-            <Route 
-              path="/profile/edit" 
-              element={
-                <PrivateRoute>
-                  <EditProfile />
-                </PrivateRoute>
-              } 
-            />
+              {/* Authenticated Shared Routes */}
+              <Route
+                path="/dashboard"
+                element={
+                  <PrivateRoute>
+                    <Dashboard />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/profile"
+                element={
+                  <PrivateRoute>
+                    <Profile />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/profile/edit"
+                element={
+                  <PrivateRoute>
+                    <EditProfile />
+                  </PrivateRoute>
+                }
+              />
 
-            {/* Admin-Only Routes */}
-            <Route 
-              path="/add-book" 
-              element={
-                <PrivateRoute role="ADMIN">
-                  <AddBook />
-                </PrivateRoute>
-              } 
-            />
-            <Route 
-              path="/edit-book/:id" 
-              element={
-                <PrivateRoute role="ADMIN">
-                  <EditBook />
-                </PrivateRoute>
-              } 
-            />
+              {/* BMS-US-010 / BMS-US-011: Cart & Checkout, available to any logged-in user */}
+              <Route
+                path="/cart"
+                element={
+                  <PrivateRoute>
+                    <Cart />
+                  </PrivateRoute>
+                }
+              />
 
-            {/* Wildcard Fallback redirects */}
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
+              {/* Admin-Only Routes */}
+              <Route
+                path="/add-book"
+                element={
+                  <PrivateRoute role="ADMIN">
+                    <AddBook />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/edit-book/:id"
+                element={
+                  <PrivateRoute role="ADMIN">
+                    <EditBook />
+                  </PrivateRoute>
+                }
+              />
+
+              {/* Wildcard Fallback redirects */}
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            </Routes>
+          </Box>
         </Box>
-      </Box>
+      </CartProvider>
     </ThemeProvider>
   );
 }

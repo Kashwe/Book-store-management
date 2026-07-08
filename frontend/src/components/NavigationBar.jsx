@@ -1,15 +1,18 @@
 import React from 'react';
-import { AppBar, Toolbar, Typography, Button, Box, Container, Chip, Avatar, Tooltip } from '@mui/material';
+import { AppBar, Toolbar, Typography, Button, Box, Container, Chip, Avatar, Tooltip, Badge, IconButton } from '@mui/material';
 import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import LogoutIcon from '@mui/icons-material/Logout';
 import AddIcon from '@mui/icons-material/Add';
 import DashboardIcon from '@mui/icons-material/Dashboard';
+import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 
 const NavigationBar = () => {
   const { user, logout } = useAuth();
+  const { itemCount } = useCart();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -85,6 +88,19 @@ const NavigationBar = () => {
                   </Button>
                 )}
 
+                {/* BMS-US-010 / 011: Cart access, available to all logged-in users */}
+                <Tooltip title="Cart">
+                  <IconButton
+                    component={RouterLink}
+                    to="/cart"
+                    sx={{ mx: 0.5, color: isActive('/cart') ? '#818cf8' : '#cbd5e1' }}
+                  >
+                    <Badge badgeContent={itemCount} color="secondary">
+                      <ShoppingCartIcon />
+                    </Badge>
+                  </IconButton>
+                </Tooltip>
+
                 <Button
                   component={RouterLink}
                   to="/profile"
@@ -111,10 +127,10 @@ const NavigationBar = () => {
                     }}
                   />
                   <Tooltip title={`${user.name} (${user.email})`}>
-                    <Avatar 
-                      sx={{ 
-                        width: 34, 
-                        height: 34, 
+                    <Avatar
+                      sx={{
+                        width: 34,
+                        height: 34,
                         bgcolor: user.role === 'ADMIN' ? '#db2777' : '#4f46e5',
                         fontWeight: 600,
                         fontSize: '0.9rem',

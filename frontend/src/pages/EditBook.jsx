@@ -37,13 +37,13 @@ const EditBook = () => {
     }
   }, [user, navigate]);
 
-  // Load Book Details from Local Cache (Since View Books is NOT implemented in Backend)
+  
+ // BMS-US-008: Load Book Details directly from the backend
   useEffect(() => {
-    const storedBooks = localStorage.getItem('books');
-    if (storedBooks) {
-      const booksList = JSON.parse(storedBooks);
-      const matchedBook = booksList.find(b => b.id === id);
-      if (matchedBook) {
+    const loadBook = async () => {
+      try {
+        const response = await api.get(`/api/books/${id}`);
+        const matchedBook = response.data;
         setFormData({
           title: matchedBook.title || '',
           author: matchedBook.author || '',
@@ -52,15 +52,14 @@ const EditBook = () => {
           price: matchedBook.price !== undefined ? matchedBook.price.toString() : '',
           quantity: matchedBook.quantity !== undefined ? matchedBook.quantity.toString() : '',
         });
-        setLoading(false);
-      } else {
-        setApiError('Book not found in the local catalog.');
+      } catch (err) {
+        console.error(err);
+        setApiError(err.response?.data?.message || 'Book not found.');
+      } finally {
         setLoading(false);
       }
-    } else {
-      setApiError('Book Catalog is empty.');
-      setLoading(false);
-    }
+    };
+    loadBook();
   }, [id]);
 
   const validate = () => {
@@ -118,8 +117,10 @@ const EditBook = () => {
       };
 
       // Call Backend API
-      const response = await api.put(`/api/books/${id}`, bookPayload);
-      const updatedBook = response.data;
+     // Call Backend API
+      await api.put(`/api/books/${id}`, bookPayload);
+
+      navigate('/dashboard');
 
       // Sync with Frontend LocalStorage List (to display on Dashboard/Book Management)
       const storedBooks = localStorage.getItem('books');

@@ -90,8 +90,9 @@ const AddBook = () => {
       };
 
       // Call Backend API
-      const response = await api.post('/api/books', bookPayload);
-      const savedBook = response.data;
+      await api.post('/api/books', bookPayload);
+
+      navigate('/dashboard');
 
       // Sync with Frontend LocalStorage List (to display on Dashboard/Book Management)
       const storedBooks = localStorage.getItem('books');
