@@ -28,11 +28,43 @@ public class OrderServiceImpl implements OrderService {
         this.bookRepository = bookRepository;
         this.orderRepository = orderRepository;
     }
-    @Override
+@Override
 public List<Order> getMyOrders(String userEmail) {
     return orderRepository.findByUserEmailOrderByOrderDateDesc(userEmail);
 }
 
+@Override
+public OrderResponse cancelOrder(String orderId, String userEmail) {
+
+    Order order = orderRepository.findById(orderId)
+            .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
+
+    if (!order.getUserEmail().equals(userEmail)) {
+        throw new BadRequestException("You are not authorized to cancel this order");
+    }
+
+    if (order.getStatus() == OrderStatus.CANCELLED) {
+        throw new BadRequestException("Order is already cancelled");
+    }
+
+    // Restore stock
+    for (OrderItem item : order.getItems()) {
+
+        Book book = bookRepository.findById(item.getBookId())
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Book not found"));
+
+        book.setQuantity(book.getQuantity() + item.getQuantity());
+
+        bookRepository.save(book);
+    }
+
+    order.setStatus(OrderStatus.CANCELLED);
+
+    Order updatedOrder = orderRepository.save(order);
+
+    return mapToOrderResponse(updatedOrder);
+} 
     // Place Order 
     @Override
     public OrderResponse placeOrder(String userEmail) {

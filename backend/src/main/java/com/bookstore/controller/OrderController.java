@@ -30,9 +30,17 @@ public class OrderController {
     // View My Orders
     @GetMapping("/my-orders")
     public ResponseEntity<List<Order>> getMyOrders(Principal principal) {
-
         List<Order> orders = orderService.getMyOrders(principal.getName());
-
         return ResponseEntity.ok(orders);
+    }
+
+    // Cancel Order
+    @PutMapping("/cancel/{orderId}")
+    public ResponseEntity<OrderResponse> cancelOrder(
+            @PathVariable String orderId,
+            Principal principal) {
+
+        OrderResponse response = orderService.cancelOrder(orderId, principal.getName());
+        return ResponseEntity.ok(response);
     }
 }

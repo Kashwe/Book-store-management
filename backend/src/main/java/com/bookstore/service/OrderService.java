@@ -12,4 +12,7 @@ public interface OrderService {
 
     // View Orders
     List<Order> getMyOrders(String userEmail);
+
+    // Cancel Order
+    OrderResponse cancelOrder(String orderId, String userEmail);
 }
