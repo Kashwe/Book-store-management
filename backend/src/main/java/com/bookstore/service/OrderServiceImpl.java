@@ -28,6 +28,10 @@ public class OrderServiceImpl implements OrderService {
         this.bookRepository = bookRepository;
         this.orderRepository = orderRepository;
     }
+    @Override
+public List<Order> getMyOrders(String userEmail) {
+    return orderRepository.findByUserEmailOrderByOrderDateDesc(userEmail);
+}
 
     // Place Order 
     @Override

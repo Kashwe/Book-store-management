@@ -8,7 +8,7 @@ import { CartProvider } from './context/CartContext';
 
 // Components
 import NavigationBar from './components/NavigationBar';
-
+import MyOrders from "./pages/MyOrders";
 // Pages
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -113,6 +113,7 @@ function App() {
           <NavigationBar />
           <Box component="main" sx={{ flexGrow: 1, px: 2 }}>
             <Routes>
+              <Route path="/my-orders" element={<MyOrders />} />
               {/* Public Routes */}
               <Route
                 path="/login"
