@@ -3,6 +3,7 @@ package com.bookstore.service;
 import com.bookstore.dto.CartItemRequest;
 import com.bookstore.dto.CartItemResponse;
 import com.bookstore.dto.CartResponse;
+import com.bookstore.dto.UpdateCartItemRequest;
 import com.bookstore.entity.Book;
 import com.bookstore.entity.Cart;
 import com.bookstore.entity.CartItem;
@@ -71,6 +72,31 @@ public class CartServiceImpl implements CartService {
         Cart cart = cartRepository.findByUserEmail(userEmail)
                 .orElseGet(() -> Cart.builder().userEmail(userEmail).items(new ArrayList<>()).build());
         return mapToCartResponse(cart);
+    }
+
+    // Sets a cart line item to an exact quantity (used by the dashboard's +/- stepper)
+    @Override
+    public CartResponse updateItemQuantity(String userEmail, String bookId, UpdateCartItemRequest request) {
+        Cart cart = cartRepository.findByUserEmail(userEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("Cart not found for user: " + userEmail));
+
+        CartItem existingItem = cart.getItems().stream()
+                .filter(item -> item.getBookId().equals(bookId))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("Item not found in cart with book ID: " + bookId));
+
+        Book book = bookRepository.findById(bookId)
+                .orElseThrow(() -> new ResourceNotFoundException("Book not found with ID: " + bookId));
+
+        if (request.getQuantity() > book.getQuantity()) {
+            throw new BadRequestException(
+                    "Only " + book.getQuantity() + " unit(s) of \"" + book.getTitle() + "\" available in stock");
+        }
+
+        existingItem.setQuantity(request.getQuantity());
+
+        Cart savedCart = cartRepository.save(cart);
+        return mapToCartResponse(savedCart);
     }
 
     @Override

@@ -1,18 +1,18 @@
 package com.bookstore.service;
 
+import com.bookstore.dto.CheckoutRequest;
 import com.bookstore.dto.OrderResponse;
-import com.bookstore.entity.Order;
 
 import java.util.List;
 
 public interface OrderService {
 
-    // Place Order
-    OrderResponse placeOrder(String userEmail);
+    //  Place Order
+    OrderResponse placeOrder(String userEmail, CheckoutRequest request);
 
-    // View Orders
-    List<Order> getMyOrders(String userEmail);
+    // BMS-US-012: View Order History
+    List<OrderResponse> getOrdersForUser(String userEmail);
 
-    // Cancel Order
-    OrderResponse cancelOrder(String orderId, String userEmail);
+    // BMS-US-013: Cancel Order
+    OrderResponse cancelOrder(String userEmail, String orderId);
 }

@@ -1,5 +1,6 @@
 package com.bookstore.service;
 
+import com.bookstore.dto.CheckoutRequest;
 import com.bookstore.dto.OrderItemResponse;
 import com.bookstore.dto.OrderResponse;
 import com.bookstore.entity.*;
@@ -28,46 +29,9 @@ public class OrderServiceImpl implements OrderService {
         this.bookRepository = bookRepository;
         this.orderRepository = orderRepository;
     }
-@Override
-public List<Order> getMyOrders(String userEmail) {
-    return orderRepository.findByUserEmailOrderByOrderDateDesc(userEmail);
-}
-
-@Override
-public OrderResponse cancelOrder(String orderId, String userEmail) {
-
-    Order order = orderRepository.findById(orderId)
-            .orElseThrow(() -> new ResourceNotFoundException("Order not found"));
-
-    if (!order.getUserEmail().equals(userEmail)) {
-        throw new BadRequestException("You are not authorized to cancel this order");
-    }
-
-    if (order.getStatus() == OrderStatus.CANCELLED) {
-        throw new BadRequestException("Order is already cancelled");
-    }
-
-    // Restore stock
-    for (OrderItem item : order.getItems()) {
-
-        Book book = bookRepository.findById(item.getBookId())
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Book not found"));
-
-        book.setQuantity(book.getQuantity() + item.getQuantity());
-
-        bookRepository.save(book);
-    }
-
-    order.setStatus(OrderStatus.CANCELLED);
-
-    Order updatedOrder = orderRepository.save(order);
-
-    return mapToOrderResponse(updatedOrder);
-} 
-    // Place Order 
+    // Place Order
     @Override
-    public OrderResponse placeOrder(String userEmail) {
+    public OrderResponse placeOrder(String userEmail, CheckoutRequest request) {
         Cart cart = cartRepository.findByUserEmail(userEmail)
                 .orElseThrow(() -> new BadRequestException("Your cart is empty"));
 
@@ -114,6 +78,9 @@ public OrderResponse cancelOrder(String orderId, String userEmail) {
                 .totalAmount(totalAmount)
                 .status(OrderStatus.PLACED)
                 .orderDate(LocalDateTime.now())
+                .shippingPhone(request.getPhone())
+                .shippingAddress(request.getAddress())
+                .paymentMethod(request.getPaymentMethod())
                 .build();
 
         Order savedOrder = orderRepository.save(order);
@@ -121,6 +88,43 @@ public OrderResponse cancelOrder(String orderId, String userEmail) {
         // Empty the cart now that the order has been placed
         cart.getItems().clear();
         cartRepository.save(cart);
+
+        return mapToOrderResponse(savedOrder);
+    }
+
+    // BMS-US-012: View Order History
+    @Override
+    public List<OrderResponse> getOrdersForUser(String userEmail) {
+        return orderRepository.findByUserEmailOrderByOrderDateDesc(userEmail)
+                .stream()
+                .map(this::mapToOrderResponse)
+                .collect(Collectors.toList());
+    }
+
+    // BMS-US-013: Cancel Order
+    @Override
+    public OrderResponse cancelOrder(String userEmail, String orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with ID: " + orderId));
+
+        if (!order.getUserEmail().equals(userEmail)) {
+            throw new ResourceNotFoundException("Order not found with ID: " + orderId);
+        }
+
+        if (order.getStatus() != OrderStatus.PLACED) {
+            throw new BadRequestException("Only orders with PLACED status can be cancelled");
+        }
+
+        // Restock each item; skip silently if the book was since deleted
+        for (OrderItem item : order.getItems()) {
+            bookRepository.findById(item.getBookId()).ifPresent(book -> {
+                book.setQuantity(book.getQuantity() + item.getQuantity());
+                bookRepository.save(book);
+            });
+        }
+
+        order.setStatus(OrderStatus.CANCELLED);
+        Order savedOrder = orderRepository.save(order);
 
         return mapToOrderResponse(savedOrder);
     }
@@ -142,6 +146,9 @@ public OrderResponse cancelOrder(String orderId, String userEmail) {
                 .totalAmount(order.getTotalAmount())
                 .status(order.getStatus().name())
                 .orderDate(order.getOrderDate())
+                .shippingPhone(order.getShippingPhone())
+                .shippingAddress(order.getShippingAddress())
+                .paymentMethod(order.getPaymentMethod() != null ? order.getPaymentMethod().name() : null)
                 .build();
     }
 }

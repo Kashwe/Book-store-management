@@ -7,12 +7,9 @@ import java.util.List;
 
 public interface ReviewService {
 
-    // Add Review
-    ReviewResponse addReview(String userEmail, ReviewRequest request);
+    // BMS-US-014 / BMS-US-015: Add Review & Rate Book
+    ReviewResponse addReview(String userEmail, String bookId, ReviewRequest request);
 
-    // View Reviews for a Book
-    List<ReviewResponse> getReviewsByBook(String bookId);
-
-    // View My Reviews
-    List<ReviewResponse> getMyReviews(String userEmail);
+    // BMS-US-016: View Reviews
+    List<ReviewResponse> getReviewsForBook(String bookId);
 }

@@ -18,4 +18,7 @@ public class OrderResponse {
     private Double totalAmount;
     private String status;
     private LocalDateTime orderDate;
+    private String shippingPhone;
+    private String shippingAddress;
+    private String paymentMethod;
 }

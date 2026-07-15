@@ -1,16 +1,19 @@
 import React, { useState } from 'react';
-import { Container, Typography, TextField, Button, Box, Alert, Paper, Link, InputAdornment, IconButton } from '@mui/material';
+import { Container, Typography, TextField, Button, Box, Alert, Paper, Link, InputAdornment, IconButton, ToggleButton, ToggleButtonGroup } from '@mui/material';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import KeyIcon from '@mui/icons-material/Key';
 import EmailIcon from '@mui/icons-material/Email';
+import PersonIcon from '@mui/icons-material/Person';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 
 const Login = () => {
-  const { login } = useAuth();
+  const { login, logout } = useAuth();
   const navigate = useNavigate();
 
+  const [loginAs, setLoginAs] = useState('CUSTOMER');
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
@@ -48,7 +51,18 @@ const Login = () => {
     setApiError('');
 
     try {
-      await login(formData.email, formData.password);
+      const loggedUser = await login(formData.email, formData.password);
+
+      if (loggedUser.role !== loginAs) {
+        logout();
+        setApiError(
+          loginAs === 'ADMIN'
+            ? 'This account is not an Admin account. Switch to Customer login below.'
+            : 'This is an Admin account. Switch to Admin login above.'
+        );
+        return;
+      }
+
       navigate('/dashboard');
     } catch (err) {
       console.error(err);
@@ -85,6 +99,37 @@ const Login = () => {
         >
           Please enter your credentials to login
         </Typography>
+
+        <ToggleButtonGroup
+          value={loginAs}
+          exclusive
+          fullWidth
+          onChange={(e, value) => value && setLoginAs(value)}
+          sx={{ mb: 3 }}
+        >
+          <ToggleButton
+            value="CUSTOMER"
+            sx={{
+              textTransform: 'none',
+              fontWeight: 600,
+              color: '#9ca3af',
+              '&.Mui-selected': { bgcolor: 'rgba(99, 102, 241, 0.15)', color: '#818cf8' }
+            }}
+          >
+            <PersonIcon sx={{ mr: 1 }} fontSize="small" /> Customer
+          </ToggleButton>
+          <ToggleButton
+            value="ADMIN"
+            sx={{
+              textTransform: 'none',
+              fontWeight: 600,
+              color: '#9ca3af',
+              '&.Mui-selected': { bgcolor: 'rgba(236, 72, 153, 0.15)', color: '#f472b6' }
+            }}
+          >
+            <AdminPanelSettingsIcon sx={{ mr: 1 }} fontSize="small" /> Admin
+          </ToggleButton>
+        </ToggleButtonGroup>
 
         {apiError && (
           <Alert severity="error" sx={{ mb: 3, borderRadius: '8px', bgcolor: 'rgba(239, 68, 68, 0.1)', color: '#f87171', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
