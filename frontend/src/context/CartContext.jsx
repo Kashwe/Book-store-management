@@ -44,21 +44,28 @@ export const CartProvider = ({ children }) => {
     return response.data;
   };
 
+  // Sets a cart line item to an exact quantity — used by the dashboard's +/- stepper
+  const updateQuantity = async (bookId, quantity) => {
+    const response = await api.put(`/api/cart/item/${bookId}`, { quantity });
+    setCart(response.data);
+    return response.data;
+  };
+
   const clearCart = async () => {
     await api.delete('/api/cart/clear');
     setCart({ items: [], totalAmount: 0 });
   };
 
-  // Place Order
-  const placeOrder = async () => {
-    const response = await api.post('/api/orders/place');
+  // Place Order — collects shipping phone/address + payment method at checkout
+  const placeOrder = async (checkoutData) => {
+    const response = await api.post('/api/orders/place', checkoutData);
     setCart({ items: [], totalAmount: 0 });
     return response.data;
   };
 
   return (
     <CartContext.Provider
-      value={{ cart, loading, itemCount, addToCart, removeFromCart, clearCart, placeOrder, refreshCart }}
+      value={{ cart, loading, itemCount, addToCart, removeFromCart, updateQuantity, clearCart, placeOrder, refreshCart }}
     >
       {children}
     </CartContext.Provider>

@@ -8,7 +8,7 @@ import CancelIcon from '@mui/icons-material/Cancel';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import PersonIcon from '@mui/icons-material/Person';
 import QrCodeIcon from '@mui/icons-material/QrCode';
-import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
+import CurrencyRupeeIcon from '@mui/icons-material/CurrencyRupee';
 import InventoryIcon from '@mui/icons-material/Inventory';
 
 const AddBook = () => {
@@ -91,14 +91,6 @@ const AddBook = () => {
 
       // Call Backend API
       await api.post('/api/books', bookPayload);
-
-      navigate('/dashboard');
-
-      // Sync with Frontend LocalStorage List (to display on Dashboard/Book Management)
-      const storedBooks = localStorage.getItem('books');
-      const booksList = storedBooks ? JSON.parse(storedBooks) : [];
-      booksList.push(savedBook);
-      localStorage.setItem('books', JSON.stringify(booksList));
 
       navigate('/dashboard');
     } catch (err) {
@@ -198,7 +190,7 @@ const AddBook = () => {
                 required
                 fullWidth
                 id="price"
-                label="Price (USD)"
+                label="Price (₹)"
                 name="price"
                 type="number"
                 inputProps={{ step: '0.01' }}
@@ -209,7 +201,7 @@ const AddBook = () => {
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
-                      <AttachMoneyIcon sx={{ color: '#9ca3af' }} />
+                      <CurrencyRupeeIcon sx={{ color: '#9ca3af' }} />
                     </InputAdornment>
                   ),
                 }}

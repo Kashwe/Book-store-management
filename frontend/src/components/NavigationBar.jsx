@@ -9,6 +9,8 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import AddIcon from '@mui/icons-material/Add';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
+import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
+import AssessmentIcon from '@mui/icons-material/Assessment';
 
 const NavigationBar = () => {
   const { user, logout } = useAuth();
@@ -88,6 +90,18 @@ const NavigationBar = () => {
                   </Button>
                 )}
 
+                {/* BMS-US-017 / 018: Reports access, admin only */}
+                {user.role === 'ADMIN' && (
+                  <Button
+                    component={RouterLink}
+                    to="/reports"
+                    startIcon={<AssessmentIcon />}
+                    sx={navBtnStyle('/reports')}
+                  >
+                    Reports
+                  </Button>
+                )}
+
                 {/* BMS-US-010 / 011: Cart access, available to all logged-in users */}
                 <Tooltip title="Cart">
                   <IconButton
@@ -100,6 +114,16 @@ const NavigationBar = () => {
                     </Badge>
                   </IconButton>
                 </Tooltip>
+
+                {/* BMS-US-012 / 013: Order History access, available to all logged-in users */}
+                <Button
+                  component={RouterLink}
+                  to="/orders"
+                  startIcon={<ReceiptLongIcon />}
+                  sx={navBtnStyle('/orders')}
+                >
+                  My Orders
+                </Button>
 
                 <Button
                   component={RouterLink}

@@ -4,12 +4,15 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import api from '../api';
+import { formatCurrency } from '../utils/format';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
+import RemoveIcon from '@mui/icons-material/Remove';
 import SearchIcon from '@mui/icons-material/Search';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 
 // Kept for reference / original seed data — no longer used to populate the
 // Dashboard directly, since books now come from the real backend (US-008).
@@ -55,7 +58,7 @@ const DEFAULT_BOOKS = [
 
 const Dashboard = () => {
   const { user } = useAuth();
-  const { addToCart } = useCart();
+  const { cart, addToCart, removeFromCart, updateQuantity } = useCart();
   const navigate = useNavigate();
 
   const [books, setBooks] = useState([]);
@@ -69,11 +72,11 @@ const Dashboard = () => {
     setSnackbar({ open: true, message, severity });
   };
 
-  // BMS-US-008: View Books — pulls the real catalog from the backend
-  const loadBooks = useCallback(async () => {
+  // BMS-US-008 / BMS-US-009: View Books & Search Books — both pull from the backend
+  const loadBooks = useCallback(async (query = '') => {
     setLoading(true);
     try {
-      const response = await api.get('/api/books');
+      const response = await api.get('/api/books/search', { params: { query } });
       setBooks(response.data);
     } catch (err) {
       console.error(err);
@@ -83,16 +86,15 @@ const Dashboard = () => {
     }
   }, []);
 
+  // Debounce so the backend search endpoint isn't hit on every keystroke
   useEffect(() => {
-    loadBooks();
-  }, [loadBooks]);
+    const timeoutId = setTimeout(() => {
+      loadBooks(searchQuery);
+    }, 300);
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery, loadBooks]);
 
-  // BMS-US-009: Search Books — client-side filtering over the fetched list
-  const filteredBooks = books.filter(book =>
-    book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    book.author.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (book.isbn || '').toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredBooks = books;
 
   // BMS-US-007: Delete Book
   const handleDelete = async (id) => {
@@ -109,6 +111,9 @@ const Dashboard = () => {
     }
   };
 
+  // The +/- stepper only appears on a card once that book is actually in the cart
+  const getCartQuantity = (bookId) => cart?.items?.find((item) => item.bookId === bookId)?.quantity || 0;
+
   // BMS-US-010: Add to Cart
   const handleAddToCart = async (book) => {
     setAddingId(book.id);
@@ -118,6 +123,35 @@ const Dashboard = () => {
     } catch (err) {
       console.error(err);
       showSnackbar(err.response?.data?.message || 'Failed to add book to cart.', 'error');
+    } finally {
+      setAddingId(null);
+    }
+  };
+
+  const handleIncrement = async (book) => {
+    setAddingId(book.id);
+    try {
+      await addToCart(book.id, 1);
+    } catch (err) {
+      console.error(err);
+      showSnackbar(err.response?.data?.message || 'Failed to update quantity.', 'error');
+    } finally {
+      setAddingId(null);
+    }
+  };
+
+  const handleDecrement = async (book) => {
+    const currentQty = getCartQuantity(book.id);
+    setAddingId(book.id);
+    try {
+      if (currentQty <= 1) {
+        await removeFromCart(book.id);
+      } else {
+        await updateQuantity(book.id, currentQty - 1);
+      }
+    } catch (err) {
+      console.error(err);
+      showSnackbar(err.response?.data?.message || 'Failed to update quantity.', 'error');
     } finally {
       setAddingId(null);
     }
@@ -211,11 +245,16 @@ const Dashboard = () => {
                     '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.01)' } 
                   }}
                 >
-                  <TableCell sx={{ color: '#f3f4f6', fontWeight: 500 }}>{book.title}</TableCell>
+                  <TableCell
+                    sx={{ color: '#f3f4f6', fontWeight: 500, cursor: 'pointer', '&:hover': { color: '#818cf8' } }}
+                    onClick={() => navigate(`/books/${book.id}`)}
+                  >
+                    {book.title}
+                  </TableCell>
                   <TableCell sx={{ color: '#cbd5e1' }}>{book.author}</TableCell>
                   <TableCell sx={{ color: '#cbd5e1', fontFamily: 'monospace' }}>{book.isbn}</TableCell>
                   <TableCell sx={{ color: '#34d399', fontWeight: 600 }} align="right">
-                    ${book.price.toFixed(2)}
+                    {formatCurrency(book.price)}
                   </TableCell>
                   <TableCell align="right">
                     <Chip 
@@ -320,7 +359,12 @@ const Dashboard = () => {
                 </Box>
 
                 <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', p: 3 }}>
-                  <Typography variant="h6" component="h2" sx={{ fontWeight: 600, color: '#f3f4f6', fontFamily: 'Outfit', mb: 0.5, lineHeight: 1.3 }}>
+                  <Typography
+                    variant="h6"
+                    component="h2"
+                    onClick={() => navigate(`/books/${book.id}`)}
+                    sx={{ fontWeight: 600, color: '#f3f4f6', fontFamily: 'Outfit', mb: 0.5, lineHeight: 1.3, cursor: 'pointer', '&:hover': { color: '#818cf8' } }}
+                  >
                     {book.title}
                   </Typography>
                   <Typography variant="body2" sx={{ color: '#818cf8', mb: 2, fontWeight: 500 }}>
@@ -330,31 +374,66 @@ const Dashboard = () => {
                     {book.description || 'No description available for this volume.'}
                   </Typography>
                   
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 'auto' }}>
-                    <Typography variant="h5" sx={{ fontWeight: 700, color: '#34d399', display: 'flex', alignItems: 'center' }}>
-                      ${book.price.toFixed(2)}
-                    </Typography>
-                    
-                    <Button 
-                      variant="outlined" 
-                      size="small"
-                      startIcon={addingId === book.id ? <CircularProgress size={14} /> : <ShoppingCartIcon />}
-                      disabled={book.quantity === 0 || addingId === book.id}
-                      onClick={() => handleAddToCart(book)}
-                      sx={{ 
-                        textTransform: 'none', 
-                        borderRadius: '6px',
-                        borderColor: 'rgba(99, 102, 241, 0.3)',
-                        color: '#818cf8',
-                        fontWeight: 600,
-                        '&:hover': {
-                          borderColor: '#6366f1',
-                          bgcolor: 'rgba(99, 102, 241, 0.08)'
-                        }
-                      }}
-                    >
-                      {book.quantity === 0 ? 'Sold Out' : 'Add to Cart'}
-                    </Button>
+                  <Box sx={{ mt: 'auto' }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+                      <Typography variant="h5" sx={{ fontWeight: 700, color: '#34d399', display: 'flex', alignItems: 'center' }}>
+                        {formatCurrency(book.price)}
+                      </Typography>
+                      <Button
+                        size="small"
+                        startIcon={<VisibilityIcon fontSize="small" />}
+                        onClick={() => navigate(`/books/${book.id}`)}
+                        sx={{ textTransform: 'none', color: '#818cf8', fontWeight: 600, '&:hover': { bgcolor: 'rgba(99, 102, 241, 0.08)' } }}
+                      >
+                        View Details
+                      </Button>
+                    </Box>
+
+                    {getCartQuantity(book.id) > 0 ? (
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, border: '1px solid var(--border-color)', borderRadius: '6px', py: 0.5 }}>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleDecrement(book)}
+                          disabled={addingId === book.id}
+                          sx={{ color: '#9ca3af' }}
+                        >
+                          <RemoveIcon fontSize="small" />
+                        </IconButton>
+                        <Typography sx={{ px: 1, minWidth: '22px', textAlign: 'center', color: '#f3f4f6', fontWeight: 600 }}>
+                          {addingId === book.id ? <CircularProgress size={14} /> : getCartQuantity(book.id)}
+                        </Typography>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleIncrement(book)}
+                          disabled={addingId === book.id || getCartQuantity(book.id) >= book.quantity}
+                          sx={{ color: '#9ca3af' }}
+                        >
+                          <AddIcon fontSize="small" />
+                        </IconButton>
+                      </Box>
+                    ) : (
+                      <Button
+                        fullWidth
+                        variant="outlined"
+                        size="small"
+                        startIcon={addingId === book.id ? <CircularProgress size={14} /> : <ShoppingCartIcon />}
+                        disabled={book.quantity === 0 || addingId === book.id}
+                        onClick={() => handleAddToCart(book)}
+                        sx={{
+                          textTransform: 'none',
+                          borderRadius: '6px',
+                          borderColor: 'rgba(99, 102, 241, 0.3)',
+                          color: '#818cf8',
+                          fontWeight: 600,
+                          '&:hover': {
+                            borderColor: '#6366f1',
+                            bgcolor: 'rgba(99, 102, 241, 0.08)'
+                          }
+                        }}
+                      >
+                        {book.quantity === 0 ? 'Sold Out' : 'Add to Cart'}
+                      </Button>
+                    )}
                   </Box>
                 </CardContent>
               </Card>
