@@ -8,7 +8,6 @@ import { CartProvider } from './context/CartContext';
 
 // Components
 import NavigationBar from './components/NavigationBar';
-
 // Pages
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -18,6 +17,10 @@ import EditProfile from './pages/EditProfile';
 import AddBook from './pages/AddBook';
 import EditBook from './pages/EditBook';
 import Cart from './pages/Cart';
+import Orders from './pages/Orders';
+import BookDetail from './pages/BookDetail';
+import Reports from './pages/Reports';
+import Checkout from './pages/Checkout';
 
 // MUI Premium Dark Theme Setup
 const theme = createTheme({
@@ -113,6 +116,7 @@ function App() {
           <NavigationBar />
           <Box component="main" sx={{ flexGrow: 1, px: 2 }}>
             <Routes>
+              
               {/* Public Routes */}
               <Route
                 path="/login"
@@ -167,6 +171,36 @@ function App() {
                 }
               />
 
+              {/* BMS-US-014 / 015 / 016: Book Detail with Reviews & Ratings */}
+              <Route
+                path="/books/:id"
+                element={
+                  <PrivateRoute>
+                    <BookDetail />
+                  </PrivateRoute>
+                }
+              />
+
+              {/* BMS-US-011: Checkout — collects shipping + payment details before placing the order */}
+              <Route
+                path="/checkout"
+                element={
+                  <PrivateRoute>
+                    <Checkout />
+                  </PrivateRoute>
+                }
+              />
+
+              {/* BMS-US-012 / BMS-US-013: Order History & Cancel, available to any logged-in user */}
+              <Route
+                path="/orders"
+                element={
+                  <PrivateRoute>
+                    <Orders />
+                  </PrivateRoute>
+                }
+              />
+
               {/* Admin-Only Routes */}
               <Route
                 path="/add-book"
@@ -181,6 +215,16 @@ function App() {
                 element={
                   <PrivateRoute role="ADMIN">
                     <EditBook />
+                  </PrivateRoute>
+                }
+              />
+
+              {/* BMS-US-017 / BMS-US-018: Sales & Inventory Reports */}
+              <Route
+                path="/reports"
+                element={
+                  <PrivateRoute role="ADMIN">
+                    <Reports />
                   </PrivateRoute>
                 }
               />

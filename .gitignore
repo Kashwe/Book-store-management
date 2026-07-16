@@ -1,0 +1,12 @@
+backend/src/main/resources/application-local.properties
+
+# Build output
+backend/target/
+frontend/node_modules/
+frontend/dist/
+
+# IDE / crash artifacts
+.vscode/
+backend/hs_err_pid*.log
+backend/qc
+backend/query

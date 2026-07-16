@@ -75,6 +75,8 @@ public class SecurityConfig {
                 // Public for API testing
                 // ==============================
                 .requestMatchers(
+                    "/docs",
+                    "/docs/**",
                     "/swagger-ui/**",
                     "/swagger-ui.html",
                     "/v3/api-docs",
@@ -142,6 +144,15 @@ public class SecurityConfig {
                 ).authenticated()
 
                 // ==============================
+                // BMS-US-017 / BMS-US-018
+                // Sales & Inventory Reports
+                // Admin only
+                // ==============================
+                .requestMatchers(
+                    "/api/reports/**"
+                ).hasRole("ADMIN")
+
+                // ==============================
                 // All remaining APIs
                 // Login required
                 // Includes profile APIs
@@ -173,7 +184,9 @@ public class SecurityConfig {
         configuration.setAllowedOrigins(
             List.of(
                 "http://localhost:5173",
-                "http://127.0.0.1:5173"
+                "http://127.0.0.1:5173",
+                "http://localhost:5174",
+                "http://127.0.0.1:5174"
             )
         );
 

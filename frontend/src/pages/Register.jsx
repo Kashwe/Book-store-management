@@ -5,8 +5,6 @@ import { useAuth } from '../context/AuthContext';
 import PersonIcon from '@mui/icons-material/Person';
 import EmailIcon from '@mui/icons-material/Email';
 import LockIcon from '@mui/icons-material/Lock';
-import PhoneIcon from '@mui/icons-material/Phone';
-import HomeIcon from '@mui/icons-material/Home';
 
 const Register = () => {
   const { register } = useAuth();
@@ -16,8 +14,6 @@ const Register = () => {
     name: '',
     email: '',
     password: '',
-    phone: '',
-    address: '',
   });
 
   const [errors, setErrors] = useState({});
@@ -28,7 +24,7 @@ const Register = () => {
   const validate = () => {
     const tempErrors = {};
     if (!formData.name.trim()) tempErrors.name = 'Name is required';
-    
+
     if (!formData.email) {
       tempErrors.email = 'Email is required';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
@@ -40,9 +36,6 @@ const Register = () => {
     } else if (formData.password.length < 6) {
       tempErrors.password = 'Password must be at least 6 characters';
     }
-
-    if (!formData.phone.trim()) tempErrors.phone = 'Phone number is required';
-    if (!formData.address.trim()) tempErrors.address = 'Address is required';
 
     setErrors(tempErrors);
     return Object.keys(tempErrors).length === 0;
@@ -69,9 +62,7 @@ const Register = () => {
       await register(
         formData.name,
         formData.email,
-        formData.password,
-        formData.phone,
-        formData.address
+        formData.password
       );
       setSuccessMsg('Registration successful! Redirecting to login page...');
       setTimeout(() => {
@@ -183,48 +174,6 @@ const Register = () => {
                   startAdornment: (
                     <InputAdornment position="start">
                       <LockIcon sx={{ color: '#9ca3af' }} />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                required
-                fullWidth
-                id="phone"
-                label="Phone Number"
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-                error={!!errors.phone}
-                helperText={errors.phone}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <PhoneIcon sx={{ color: '#9ca3af' }} />
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                required
-                fullWidth
-                id="address"
-                label="Shipping Address"
-                name="address"
-                multiline
-                rows={3}
-                value={formData.address}
-                onChange={handleChange}
-                error={!!errors.address}
-                helperText={errors.address}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start" sx={{ alignSelf: 'flex-start', mt: 1 }}>
-                      <HomeIcon sx={{ color: '#9ca3af' }} />
                     </InputAdornment>
                   ),
                 }}
