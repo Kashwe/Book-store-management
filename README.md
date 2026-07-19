@@ -27,7 +27,7 @@ BookStoreManagement/
 To run this application, make sure you have the following installed:
 - **Java JDK 17** (or higher)
 - **Node.js** (v18.x or higher) & **npm** (v9.x or higher)
-- **MongoDB** (running locally on `mongodb://localhost:27017/` or configured via connection string)
+- - Access to the configured **MongoDB** database (e.g., MongoDB Atlas or a shared MongoDB instance)
 
 ---
 
@@ -35,10 +35,16 @@ To run this application, make sure you have the following installed:
 
 ### 1. Database Setup
 
-1. Make sure your local MongoDB service is running:
-   - **Windows**: Run `net start MongoDB` or check Services manager.
-   - **macOS / Linux**: Run `brew services start mongodb-community` or `sudo systemctl start mongod`.
-2. The backend is configured to connect to `mongodb://localhost:27017/bookstore_db` by default. It will automatically create the database and collection schemas on start.
+1. Ensure you have access to the MongoDB database configured for this project (e.g., MongoDB Atlas or a shared MongoDB instance).
+2. Open the backend configuration file:
+   ```
+   backend/src/main/resources/application.properties
+   ```
+3. Configure the MongoDB connection string:
+   ```properties
+   spring.data.mongodb.uri=<your-mongodb-connection-string>
+   ```
+4. Replace `<your-mongodb-connection-string>` with the connection string provided for your project. The application will automatically create the required database and collections on startup if they do not already exist.
 
 ### 2. Backend Setup
 
@@ -46,19 +52,16 @@ To run this application, make sure you have the following installed:
    ```bash
    cd BookStoreManagement/backend
    ```
-2. (Optional) Adjust your MongoDB connection string in `src/main/resources/application.properties` if needed:
-   ```properties
-   spring.data.mongodb.uri=mongodb://localhost:27017/bookstore_db
-   ```
+2. Verify that the MongoDB connection string in `src/main/resources/application.properties` is correctly configured.
 3. Run the Spring Boot application using Maven:
    ```bash
    mvn spring-boot:run
    ```
    *(If `mvn` is not globally installed, you can build/run through your IDE or execute using the wrapper `./mvnw spring-boot:run`)*
 4. **Programmatic Database Seeding**:
-   Upon initial startup, the backend checks if an Administrator user exists. If not, it programmatically seeds one default Admin user:
+   Upon initial startup, the backend checks if an Administrator user exists. If not, it automatically creates a default Admin user:
    - **Email**: `admin@bookstore.com`
-   - **Password**: `admin123` *(Hashed in DB using BCrypt)*
+   - **Password**: `admin123` *(Stored securely using BCrypt hashing)*
 
 ### 3. Frontend Setup
 
@@ -66,7 +69,7 @@ To run this application, make sure you have the following installed:
    ```bash
    cd BookStoreManagement/frontend
    ```
-2. Install the node packages:
+2. Install the required Node.js dependencies:
    ```bash
    npm install
    ```
@@ -74,8 +77,8 @@ To run this application, make sure you have the following installed:
    ```bash
    npm run dev
    ```
-4. Access the frontend app in your browser at:
-   - [http://localhost:5173](http://localhost:5173)
+4. Access the frontend application in your browser at:
+   - **http://localhost:5173**
 
 ---
 
@@ -101,3 +104,18 @@ To run this application, make sure you have the following installed:
 ### Books (Admin Only)
 * `POST /api/books` - Add a new book to the database. Validates Price > 0, Quantity >= 0.
 * `PUT /api/books/{id}` - Modify existing book parameters. Returns the updated object.
+
+### Orders (Authenticated)
+* `GET /api/orders/my-orders` - Retrieve the logged-in customer's order history.
+* `PUT /api/orders/{orderId}/cancel` - Cancel a pending order.
+
+### Reviews (Authenticated)
+* `POST /api/reviews` - Submit a review for a book.
+* `GET /api/reviews/{bookId}` - Retrieve all reviews for a specific book.
+
+### Ratings (Authenticated)
+* `POST /api/ratings` - Submit or update a rating for a book.
+
+### Reports (Admin Only)
+* `GET /api/reports/inventory` - Generate the current book inventory report.
+* `GET /api/reports/orders` - Generate order statistics report.
